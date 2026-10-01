@@ -1,0 +1,14 @@
+# 编辑器/系统
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Node（仅测试用）
+node_modules/
+npm-debug.log*
+
+# 本仓库只包含：脚本、README、LICENSE、CHANGELOG、package.json、test/
+# 如果这个目录被用作仓库根目录，把工作区里的其它内容排除掉
+skills/

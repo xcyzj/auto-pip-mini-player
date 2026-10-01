@@ -1,0 +1,14 @@
+{
+  "name": "auto-pip-mini-player",
+  "version": "1.8.0",
+  "private": true,
+  "description": "油猴脚本：视频划出视口时变成站内悬浮小窗，或切换为浏览器系统画中画。",
+  "license": "MIT",
+  "scripts": {
+    "test": "node test/smoke-test.cjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
+
