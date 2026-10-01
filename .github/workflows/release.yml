@@ -1,9 +1,10 @@
 name: Release
 
-# 推送 v* 标签时自动创建 GitHub Release：
+# 推送 v* 标签时自动创建/更新 GitHub Release：
 #   · 正文从 CHANGELOG.md 里抽取该版本的小节
-#   · 找不到小节时退回 GitHub 自动生成的提交列表
-#   · 顺便把 .user.js 作为附件上传（得到一个内容固定的下载链接）
+#   · 标题取该小节的标题后缀（例如 "## 1.8.0 — 首个公开版本" → 标题 "v1.8.0 — 首个公开版本"）
+#   · 把 .user.js 作为附件上传（内容固定的下载链接）
+#   · 可重复执行：Release 已存在时改成"更新标题/正文 + 覆盖附件"，不会报错
 # 也就是说：本地 push 一个 tag 就够了，不用再手动点 "Draft a new release"。
 
 on:
@@ -20,32 +21,51 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 从 CHANGELOG 抽取本版本说明
+      - name: 从 CHANGELOG 抽取本版本说明与标题
         run: |
           set -euo pipefail
           version="${GITHUB_REF_NAME#v}"
           echo "tag=${GITHUB_REF_NAME}  version=${version}"
+
           awk -v v="$version" '
             $0 ~ "^##[[:space:]]+\\[?v?" v "\\]?([[:space:]]|$)" { inside=1; next }
             inside && $0 ~ "^##[[:space:]]" { exit }
             inside { print }
           ' CHANGELOG.md | sed '/./,$!d' > release-notes.md
-          if [ -s release-notes.md ]; then
-            echo "--- 使用 CHANGELOG 中的说明 ---"
-            cat release-notes.md
-          else
-            echo "CHANGELOG 中没有 ${version} 的小节，改用自动生成的说明。"
-          fi
 
-      - name: 创建 Release
+          # 标题后缀：把 "## 1.8.0 — 首个公开版本" 里的 "— 首个公开版本" 取出来
+          suffix=$(grep -m1 -E "^##[[:space:]]+\[?v?${version}\]?" CHANGELOG.md \
+            | sed -E "s/^##[[:space:]]+//; s/^\[?v?${version}\]?//; s/^[[:space:]]*[—–:-]+[[:space:]]*//" || true)
+          if [ -n "${suffix:-}" ]; then
+            title="${GITHUB_REF_NAME} — ${suffix}"
+          else
+            title="${GITHUB_REF_NAME}"
+          fi
+          echo "title=${title}" >> "$GITHUB_ENV"
+          echo "--- 标题：${title} ---"
+          if [ -s release-notes.md ]; then cat release-notes.md; else echo "（CHANGELOG 没有该版本小节，将用自动生成的说明）"; fi
+
+      - name: 创建或更新 Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           tag="$GITHUB_REF_NAME"
           assets=$(ls ./*.user.js 2>/dev/null || true)
-          if [ -s release-notes.md ]; then
-            gh release create "$tag" --title "$tag" --notes-file release-notes.md $assets
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release 已存在，更新标题/正文并覆盖附件。"
+            if [ -s release-notes.md ]; then
+              gh release edit "$tag" --title "$title" --notes-file release-notes.md
+            else
+              gh release edit "$tag" --title "$title"
+            fi
+            [ -n "$assets" ] && gh release upload "$tag" $assets --clobber
           else
-            gh release create "$tag" --title "$tag" --generate-notes $assets
+            echo "新建 Release。"
+            if [ -s release-notes.md ]; then
+              gh release create "$tag" --title "$title" --notes-file release-notes.md $assets
+            else
+              gh release create "$tag" --title "$title" --generate-notes $assets
+            fi
           fi
+          gh release view "$tag" --json tagName,name,assets --jq '{tag: .tagName, title: .name, assets: [.assets[] | {name, size}]}'
