@@ -1,8 +1,9 @@
 #!/bin/sh
-# git pre-push 钩子：推送前扫描所有被跟踪的文件（比 pre-commit 更宽，能兜住历史里遗留的问题）。
+# git pre-commit 钩子：提交前扫描"即将提交的内容"（已暂存的改动）。
+# 发现密钥/令牌就中止本次提交 —— 密钥连本地提交都进不去。
 #
 # 启用（每个新克隆做一次）：git config core.hooksPath tools/githooks
-# 临时跳过某次推送：git push --no-verify
+# 临时跳过某次提交：git commit --no-verify
 
 . tools/githooks/_find-node.sh
 
@@ -12,7 +13,7 @@ if [ -z "$NODE" ]; then
 fi
 
 if [ -f tools/check-secrets.cjs ]; then
-  exec "$NODE" tools/check-secrets.cjs
+  exec "$NODE" tools/check-secrets.cjs --staged
 fi
 
 echo "check-secrets: 没有 tools/check-secrets.cjs，跳过" >&2
