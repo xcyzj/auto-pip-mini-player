@@ -20,6 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 需要完整历史才能判断标签是否指向 main 上的提交
+
+      - name: 防御：标签必须指向 main 上的提交
+        run: |
+          set -euo pipefail
+          git fetch origin main --depth=1
+          if git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "✓ 标签 $GITHUB_REF_NAME 指向 main 上的提交，可以发版。"
+          else
+            echo "✗ 标签 $GITHUB_REF_NAME 指向的提交不在 main 上，拒绝发版（避免从未经审查的提交发布）。"
+            echo "  如果你确实要给旧提交补发 Release，请先把该提交合进 main。"
+            exit 1
+          fi
 
       - name: 从 CHANGELOG 抽取本版本说明与标题
         run: |
