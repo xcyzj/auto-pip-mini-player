@@ -1,0 +1,51 @@
+name: Release
+
+# 推送 v* 标签时自动创建 GitHub Release：
+#   · 正文从 CHANGELOG.md 里抽取该版本的小节
+#   · 找不到小节时退回 GitHub 自动生成的提交列表
+#   · 顺便把 .user.js 作为附件上传（得到一个内容固定的下载链接）
+# 也就是说：本地 push 一个 tag 就够了，不用再手动点 "Draft a new release"。
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 从 CHANGELOG 抽取本版本说明
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          echo "tag=${GITHUB_REF_NAME}  version=${version}"
+          awk -v v="$version" '
+            $0 ~ "^##[[:space:]]+\\[?v?" v "\\]?([[:space:]]|$)" { inside=1; next }
+            inside && $0 ~ "^##[[:space:]]" { exit }
+            inside { print }
+          ' CHANGELOG.md | sed '/./,$!d' > release-notes.md
+          if [ -s release-notes.md ]; then
+            echo "--- 使用 CHANGELOG 中的说明 ---"
+            cat release-notes.md
+          else
+            echo "CHANGELOG 中没有 ${version} 的小节，改用自动生成的说明。"
+          fi
+
+      - name: 创建 Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          assets=$(ls ./*.user.js 2>/dev/null || true)
+          if [ -s release-notes.md ]; then
+            gh release create "$tag" --title "$tag" --notes-file release-notes.md $assets
+          else
+            gh release create "$tag" --title "$tag" --generate-notes $assets
+          fi
