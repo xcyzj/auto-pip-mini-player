@@ -2,15 +2,14 @@
 // @name         视频划出视口 · 自动小窗与画中画
 // @name:en      Video Mini Player & Auto PiP on Scroll
 // @namespace    https://github.com/xcyzj/auto-pip-mini-player
-// @version      1.8.0
+// @version      1.8.1
 // @description  视频划出视口时自动变成站内悬浮小窗（类似哔哩哔哩），也可切换为浏览器系统画中画。保留站点自带控制条，整体等比缩放，支持拖动/缩放/位置记忆。
 // @description:en When the player scrolls out of view it shrinks into an in-page floating mini player (like Bilibili); optionally it can enter the browser's Picture-in-Picture instead. Keeps the site's own control bar, scales the whole player, draggable and resizable with remembered position.
 // @author       xcyzj
 // @license      MIT
 // @homepageURL  https://github.com/xcyzj/auto-pip-mini-player
 // @supportURL   https://github.com/xcyzj/auto-pip-mini-player/issues
-// （暂不写 @downloadURL / @updateURL：让油猴按"安装来源"自动检查更新。
-//   发布到 GreasyFork 后执行 node tools/setup-metadata.cjs --gf-script <ID> 会自动补上这两行。）
+// 故意不写 @downloadURL / @updateURL：油猴会用"安装来源"（GreasyFork 或 GitHub Raw）检查更新，两条路都能自动更新。
 // @match        https://www.miyoushe.com/ys/article*
 // @match        https://www.miyoushe.com/sr/article*
 // @match        https://www.miyoushe.com/bh3/article*

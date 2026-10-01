@@ -1,0 +1,8 @@
+# 统一换行符为 LF，避免在不同系统上编辑时反复整文件变动
+* text=auto eol=lf
+
+# 脚本与文档按文本处理
+*.user.js text
+*.md text
+*.cjs text
+*.json text
