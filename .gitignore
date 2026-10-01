@@ -15,3 +15,19 @@ skills/
 
 # 本地生成的 Release 正文（从 CHANGELOG 抽取，仅用于发版时粘贴，不入库）
 .release-notes/
+
+# 凭据类文件：一律不要进仓库（真需要示例就写 .env.example）
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa*
+id_ed25519*
+.netrc
+.npmrc
+secrets.json
+credentials.json
+service-account*.json

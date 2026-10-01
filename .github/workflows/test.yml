@@ -27,8 +27,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # 敏感信息扫描要能看历史
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: 敏感信息扫描（密钥、令牌、凭据）
+        run: node tools/check-secrets.cjs
       - name: 运行冒烟测试
         run: node test/smoke-test.cjs

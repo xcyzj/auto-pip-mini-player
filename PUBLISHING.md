@@ -159,7 +159,49 @@ https://raw.githubusercontent.com/xcyzj/auto-pip-mini-player/main/auto-pip-mini-
 
 ---
 
-## 第 5 步：发布前自检清单
+## 第 5 步：敏感信息审查（已自动配好）
+
+仓库里现在有三道防线，**默认全部生效**，不需要你记得去跑：
+
+| 防线 | 在哪 | 什么时候起作用 |
+|---|---|---|
+| **pre-push 钩子** | `tools/githooks/pre-push` | 你手动 `git push` 之前（本地拦截，密钥根本不出本机） |
+| **ghpush 提交前审查** | 技能 `github-publish` 的 `ghpush.cjs` | agent 推送前，**命中即中止提交** |
+| **CI 扫描** | `.github/workflows/test.yml` 里的 `node tools/check-secrets.cjs` | 每次推送 / PR，扫所有被跟踪的文件 |
+
+扫描器是 `tools/check-secrets.cjs`，分两级：
+
+- **【确定】** 精确匹配各家令牌格式（GitHub / OpenAI / Anthropic / AWS / Google / Slack / npm / 私钥块等）→ **直接失败**；
+- **【疑似】** `api_key = "..."` 这类启发式 → 默认只提示，加 `--strict` 才失败。
+
+手动使用：
+
+```powershell
+node tools/check-secrets.cjs            # 扫所有被跟踪的文件（CI 用的就是这个）
+node tools/check-secrets.cjs --staged   # 只扫即将提交的内容
+node tools/check-secrets.cjs --history  # 扫历史提交（慢，偶尔跑一次）
+node tools/check-secrets.cjs --strict   # 连"疑似"也算失败
+```
+
+**误报怎么办**：在该行加注释 `check-secrets:allow`，或把正则写进仓库根的 `.secretsignore`。
+
+**启用 pre-push 钩子**（每个新克隆做一次 —— `.git/` 里的配置不进仓库）：
+
+```powershell
+git config core.hooksPath tools/githooks
+```
+
+### 万一真的把密钥推上去了
+
+1. **先撤销/轮换那个密钥**（GitHub token 立即 Revoke、云服务密钥立即重置）—— 这一步最重要，改写历史**不等于**密钥安全；
+2. 再考虑清理历史：单人仓库最省事的是删库重建，或用 `git filter-repo` 重写；
+3. 公开仓库要假设内容已被爬走，所以第 1 步永远优先。
+
+另外 GitHub 对**公开仓库**默认提供 secret scanning 与 push protection（服务端拦截），可在 `Settings → Code security and analysis` 确认状态 —— 那是额外兜底，替代不了上面三道防线。
+
+---
+
+## 第 6 步：发布前自检清单
 
 - [ ] `npm test` 输出 `ALL PASS`
 - [ ] 脚本头部 `@version` 是你想要的版本号（首次 `1.8.0`）

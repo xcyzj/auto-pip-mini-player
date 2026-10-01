@@ -1,0 +1,33 @@
+#!/bin/sh
+# git pre-push 钩子：推送前扫描敏感信息（密钥、令牌、凭据）
+#
+# 启用（每个新克隆做一次）：
+#     git config core.hooksPath tools/githooks
+# 关闭：
+#     git config --unset core.hooksPath
+#
+# 想临时跳过某次推送：git push --no-verify
+
+set -e
+
+# 找 node：优先 PATH 里的，其次本机 DSH 捆绑的
+NODE="$(command -v node || true)"
+if [ -z "$NODE" ]; then
+  for cand in \
+    "/c/Users/HAPPY/.dsh/dsh-runtimes/dsh-primary-runtime/dependencies/node/bin/node.exe" \
+    "$HOME/.dsh/dsh-runtimes/dsh-primary-runtime/dependencies/node/bin/node.exe"
+  do
+    [ -x "$cand" ] && NODE="$cand" && break
+  done
+fi
+
+if [ -z "$NODE" ]; then
+  echo "check-secrets: 找不到 node，跳过本次扫描" >&2
+  exit 0
+fi
+
+if [ -f tools/check-secrets.cjs ]; then
+  exec "$NODE" tools/check-secrets.cjs
+fi
+
+echo "check-secrets: 没有 tools/check-secrets.cjs，跳过" >&2
