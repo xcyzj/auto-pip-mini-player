@@ -161,13 +161,14 @@ https://raw.githubusercontent.com/xcyzj/auto-pip-mini-player/main/auto-pip-mini-
 
 ## 第 5 步：敏感信息审查（已自动配好）
 
-仓库里现在有三道防线，**默认全部生效**，不需要你记得去跑：
+仓库里现在有三道防线，**默认全部生效**，不需要你记得去跑，也**不消耗任何模型 token**（都是本地脚本 / CI 在跑）：
 
-| 防线 | 在哪 | 什么时候起作用 |
-|---|---|---|
-| **pre-push 钩子** | `tools/githooks/pre-push` | 你手动 `git push` 之前（本地拦截，密钥根本不出本机） |
-| **ghpush 提交前审查** | 技能 `github-publish` 的 `ghpush.cjs` | agent 推送前，**命中即中止提交** |
-| **CI 扫描** | `.github/workflows/test.yml` 里的 `node tools/check-secrets.cjs` | 每次推送 / PR，扫所有被跟踪的文件 |
+| 防线 | 在哪 | 什么时候起作用 | 谁跑 |
+|---|---|---|---|
+| **pre-commit 钩子** | `tools/githooks/pre-commit` | `git commit` 时扫描**已暂存的内容**，命中就中止提交 | 你的电脑，自动 |
+| **pre-push 钩子** | `tools/githooks/pre-push` | `git push` 时扫描**所有被跟踪的文件** | 你的电脑，自动 |
+| **ghpush 提交前审查** | 技能 `github-publish` 的 `ghpush.cjs` | agent 推送前，命中即中止（它也会自动挂上上面的钩子） | agent 调用时，自动 |
+| **CI 扫描** | `.github/workflows/test.yml` 里的 `node tools/check-secrets.cjs` | 每次推送 / PR（服务端强制，钩子被绕过也拦得住） | GitHub |
 
 扫描器是 `tools/check-secrets.cjs`，分两级：
 
@@ -185,11 +186,14 @@ node tools/check-secrets.cjs --strict   # 连"疑似"也算失败
 
 **误报怎么办**：在该行加注释 `check-secrets:allow`，或把正则写进仓库根的 `.secretsignore`。
 
-**启用 pre-push 钩子**（每个新克隆做一次 —— `.git/` 里的配置不进仓库）：
+**启用 git 钩子**（每个新克隆做一次 —— `.git/` 里的配置不进仓库）：
 
 ```powershell
-git config core.hooksPath tools/githooks
+npm run hooks          # 等价于 git config core.hooksPath tools/githooks
 ```
+
+- 想临时跳过：`git commit --no-verify` / `git push --no-verify`（**CI 那边仍然会拦**）；
+- 想对所有仓库生效（可选）：`git config --global core.hooksPath <某个目录>`，但要自己维护那个目录，别把别的项目已有的钩子覆盖掉。
 
 ### 万一真的把密钥推上去了
 
