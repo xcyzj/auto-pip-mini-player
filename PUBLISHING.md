@@ -117,17 +117,31 @@ auto-pip-mini-player/
 
 ## 第 4 步：以后怎么发布新版本
 
-这是你之后每次改脚本都要走的流程，只有两步。
+这是你之后每次改脚本都要走的流程。**仓库里已经配好 CI，Release 不再需要手点网页。**
 
-1. **本地改脚本**：编辑 `auto-pip-mini-player.user.js`，并把头部的 `@version` 加一位（例如 `1.8.1` → `1.8.2`）。
-   > 油猴只在 `@version` 变大时才认为是新版本，所以这一步不能忘。
-   > 改完跑一次 `npm test`，确认没改坏。
-2. **推到两个平台**（顺序随意）：
-   - **GreasyFork**：脚本页 → `管理` → `代码` → 把新内容整份粘进去覆盖 → `保存`。
-   - **GitHub**：点开 `auto-pip-mini-player.user.js` → 右上角铅笔图标 → 全选删除 → 粘贴新内容 → `Commit changes`。
-     *（或者仓库页 `Add file` → `Upload files`，把新文件拖上去覆盖同名文件。）*
+1. **本地改脚本**：编辑 `auto-pip-mini-player.user.js`，把头部 `@version` 加一位（例如 `1.8.1` → `1.8.2`），并在 `CHANGELOG.md` 里加一节 `## 1.8.2`（CI 会把它当作 Release 正文）。
+   > 油猴只在 `@version` 变大时才认为有新版本，所以这一步不能忘。改完跑一次 `npm test`。
+2. **推代码 + 打 tag**（一条命令；也可以让 agent 代做）：
+   ```powershell
+   & 'C:\Users\HAPPY\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe' `
+     'C:\Users\HAPPY\.dsh\skills\github-publish\scripts\ghpush.cjs' `
+     push -m "release v1.8.2" --tag v1.8.2
+   ```
+3. **其余全部自动**：
 
-已安装的用户会在油猴下一次检查时自动收到新版本。
+| 谁 | 自动做什么 |
+| --- | --- |
+| GitHub Actions `Release` | 收到 `v*` 标签 → 从 `CHANGELOG.md` 抽取该版本说明 → 创建 Release，并把 `.user.js` 作为附件上传 |
+| GitHub Actions `Test` | 每次推送跑一遍冒烟测试（90+ 项断言） |
+| GreasyFork | 配了「从 URL 同步」时，定期检查 GitHub 上的 `@version`，自动发布新版本 |
+
+也就是说：**打一个 tag，GitHub Release 与 GreasyFork 都会自动跟上**，不需要再手动复制粘贴或点 "Draft a new release"。
+
+> 只有你想让正文更精美时，才需要去网页编辑一下自动生成的 Release（一般不必）。
+
+### Release 是怎么自动生成的
+
+工作流文件在 `.github/workflows/release.yml`：触发条件是 `push` 标签 `v*`，用 `GITHUB_TOKEN` 调 `gh release create`，正文来自 `CHANGELOG.md` 里匹配 `## <版本号>` 的那一小节；找不到就退回 GitHub 自动生成的提交列表。想改格式就改那个文件（改完记得提交到默认分支，且**下一次打标签时生效**）。
 
 ### 可选：让 GreasyFork 自动跟着 GitHub 走
 
