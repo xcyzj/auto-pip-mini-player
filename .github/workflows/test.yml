@@ -3,11 +3,24 @@ name: Test
 # 每次推送/PR 都跑一遍冒烟测试（最小 DOM 桩，不需要浏览器）。
 # 目的是在改动后立刻发现行为回归 —— 这个脚本的很多逻辑（停靠/还原、几何补偿、
 # 防跳补偿、画中画触发与自动收起）都可以在没有浏览器的环境里验证。
+#
+# 关于"谁能触发"（公开仓库）：
+#   · push：需要有本仓库写权限的人（你或协作者）
+#   · pull_request：任何人都能从自己的 fork 开 PR 来触发，但那种运行
+#       - 拿到的是**只读** GITHUB_TOKEN（下面的 permissions 再收紧一层）
+#       - **读不到任何 secrets**（GitHub 对 fork PR 一律不下发 secrets）
+#       - 首次贡献者需要你点批准才会跑
+#     而这里只做一件事：运行仓库里的测试，不联网、不用令牌。
+#   想更严：仓库 Settings → Actions → General → Fork pull request workflows
+#   改成 "Require approval for all outside collaborators"，或删掉下面的 pull_request 触发器。
 
 on:
   push:
     branches: ['**']
   pull_request:
+
+permissions:
+  contents: read # 只读就够；显式声明，避免依赖仓库默认值
 
 jobs:
   smoke-test:
